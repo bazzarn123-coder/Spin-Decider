@@ -1,9 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpinDecide: Pocket Decision Maker</title>
+    <title>Spin Decider: Pocket Decision Maker</title>
+    <!-- Favicon using inline SVG data URI -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
     <style>
         :root {
             --bg-color: #0f172a;
@@ -262,7 +265,7 @@
 <body>
 
     <header>
-        <h1>SpinDecide</h1>
+        <h1>Spin Decider</h1>
         <p>The pocket decision maker wheel</p>
     </header>
 
@@ -305,7 +308,21 @@
     </div>
 
     <script>
-        let options = ['Pizza', 'Burgers', 'Tacos', 'Sushi', 'Pasta'];
+        // Load saved options from localStorage or use default fallback
+        let options = [];
+        try {
+            const savedOptions = localStorage.getItem('spinDeciderOptions');
+            if (savedOptions) {
+                options = JSON.parse(savedOptions);
+            }
+        } catch (e) {
+            console.error("Could not load options from localStorage", e);
+        }
+
+        if (!Array.isArray(options) || options.length === 0) {
+            options = ['Pizza', 'Burgers', 'Tacos', 'Sushi', 'Pasta'];
+        }
+
         let currentAngle = 0; // in degrees
         let isSpinning = false;
         
@@ -318,6 +335,15 @@
         const ctx = canvas.getContext('2d');
         const resultText = document.getElementById('resultText');
         const spinBtn = document.getElementById('spinBtn');
+
+        // Save options to localStorage
+        function saveOptionsState() {
+            try {
+                localStorage.setItem('spinDeciderOptions', JSON.stringify(options));
+            } catch (e) {
+                console.error("Could not save options to localStorage", e);
+            }
+        }
 
         // Audio Context for sound effects
         let audioCtx = null;
@@ -441,6 +467,7 @@
                 listEl.appendChild(row);
             });
             drawWheel(currentAngle);
+            saveOptionsState();
         }
 
         function escapeHtml(str) {
@@ -465,12 +492,13 @@
             if (val.trim()) {
                 options[index] = val.trim();
                 drawWheel(currentAngle);
+                saveOptionsState();
             }
         }
 
         function removeOption(index) {
             if (options.length <= 2) {
-                alert("You need at least 2 options to spin!");
+                resultText.innerText = "Need at least 2 options!";
                 return;
             }
             options.splice(index, 1);
@@ -487,7 +515,7 @@
         function startSpin() {
             if (isSpinning) return;
             if (options.length < 2) {
-                alert("Add at least 2 options first!");
+                resultText.innerText = "Add at least 2 options first!";
                 return;
             }
 
@@ -533,7 +561,6 @@
                     spinBtn.disabled = false;
                     currentAngle = targetAngle % 360;
                     
-                    // CORRECTED POINTER CALCULATION:
                     // Pointer is fixed at 12 o'clock (270 degrees in canvas space).
                     const pointerScreenAngle = 270;
                     const localAngle = (pointerScreenAngle - (currentAngle % 360) + 360) % 360;
