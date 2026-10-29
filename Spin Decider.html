@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpinDecide: Pocket Decision Maker</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            margin-bottom: 5px;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Wheel Container */
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 10px 0 25px 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        /* Pointer at Top */
+        .pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 14px solid transparent;
+            border-right: 14px solid transparent;
+            border-top: 26px solid #f43f5e;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            z-index: 10;
+        }
+
+        /* Center Spin Button */
+        .spin-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #ffffff, #e2e8f0);
+            border: 4px solid var(--accent);
+            border-radius: 50%;
+            color: #0f172a;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s ease;
+            z-index: 5;
+        }
+
+        .spin-center:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        /* Result Display */
+        .result-box {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .result-box h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .result-box p {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+
+        /* Controls & Presets */
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            width: 100%;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            background: #334155;
+            border: none;
+            color: #f8fafc;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #475569;
+        }
+
+        /* Option Editor */
+        .options-list {
+            width: 100%;
+            max-height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-right: 4px;
+        }
+
+        .option-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .option-input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .option-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-icon {
+            background: #334155;
+            border: none;
+            color: #cbd5e1;
+            width: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .add-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            flex: 1;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SpinDecide</h1>
+        <p>The pocket decision maker wheel</p>
+    </header>
+
+    <div class="container">
+        <!-- Presets -->
+        <div class="section-title">Quick Presets</div>
+        <div class="presets">
+            <button class="preset-btn" onclick="loadPreset(['Pizza', 'Burgers', 'Tacos', 'Sushi', 'Pasta'])">🍕 Food</button>
+            <button class="preset-btn" onclick="loadPreset(['Yes', 'No'])">⚖️ Yes / No</button>
+            <button class="preset-btn" onclick="loadPreset(['Movie', 'Game', 'Walk', 'Read', 'Sleep'])">🛋️ Activity</button>
+            <button class="preset-btn" onclick="loadPreset(['1', '2', '3', '4', '5', '6'])">🔢 1-6</button>
+        </div>
+
+        <!-- Wheel -->
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <canvas id="wheelCanvas" width="600" height="600"></canvas>
+            <button class="spin-center" id="spinBtn" onclick="startSpin()">SPIN</button>
+        </div>
+
+        <!-- Result -->
+        <div class="result-box">
+            <h3>Winner</h3>
+            <p id="resultText">Tap SPIN to decide!</p>
+        </div>
+
+        <!-- Options Management -->
+        <div class="section-title">
+            <span>Edit Choices</span>
+            <span id="countBadge" style="font-size: 0.75rem; color: #94a3b8;"></span>
+        </div>
+        <div class="options-list" id="optionsList">
+            <!-- Dynamically populated -->
+        </div>
+
+        <div class="add-row">
+            <input type="text" id="newOptionInput" class="option-input" placeholder="Add custom option..." onkeypress="handleKeyPress(event)">
+            <button class="btn-primary" onclick="addOption()" style="flex: 0 0 90px;">Add</button>
+        </div>
+    </div>
+
+    <script>
+        let options = ['Pizza', 'Burgers', 'Tacos', 'Sushi', 'Pasta'];
+        let currentAngle = 0; // in degrees
+        let isSpinning = false;
+        
+        const colors = [
+            '#6366f1', '#ec4899', '#f59e0b', '#10b981', 
+            '#3b82f6', '#8b5cf6', '#14b8a6', '#f43f5e'
+        ];
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const resultText = document.getElementById('resultText');
+        const spinBtn = document.getElementById('spinBtn');
+
+        // Audio Context for sound effects
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playTickSound() {
+            if (!audioCtx) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.04);
+                
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch(e) {}
+        }
+
+        function playWinSound() {
+            if (!audioCtx) return;
+            try {
+                let now = audioCtx.currentTime;
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.1);
+                osc.frequency.setValueAtTime(659.25, now + 0.2);
+                osc.frequency.setValueAtTime(880, now + 0.3);
+                
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } catch(e) {}
+        }
+
+        function drawWheel(angleDeg = 0) {
+            const numOptions = options.length;
+            if (numOptions === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            const arcSize = (2 * Math.PI) / numOptions;
+            const center = canvas.width / 2;
+            const radius = center - 10;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(center, center);
+            ctx.rotate((angleDeg * Math.PI) / 180);
+            ctx.translate(-center, -center);
+
+            for (let i = 0; i < numOptions; i++) {
+                const startAngle = i * arcSize;
+                const endAngle = (i + 1) * arcSize;
+
+                // Draw slice
+                ctx.beginPath();
+                ctx.moveTo(center, center);
+                ctx.arc(center, center, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Draw text
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.rotate(startAngle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 22px system-ui, sans-serif';
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(options[i], radius - 35, 8);
+                ctx.restore();
+            }
+
+            ctx.restore();
+
+            // Outer decorative ring
+            ctx.beginPath();
+            ctx.arc(center, center, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+        }
+
+        function renderOptionsList() {
+            const listEl = document.getElementById('optionsList');
+            listEl.innerHTML = '';
+            document.getElementById('countBadge').innerText = `${options.length} items`;
+
+            options.forEach((opt, index) => {
+                const row = document.createElement('div');
+                row.className = 'option-row';
+                row.innerHTML = `
+                    <input type="text" class="option-input" value="${escapeHtml(opt)}" onchange="updateOption(${index}, this.value)">
+                    <button class="btn-icon" onclick="removeOption(${index})" title="Remove">×</button>
+                `;
+                listEl.appendChild(row);
+            });
+            drawWheel(currentAngle);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function addOption() {
+            const input = document.getElementById('newOptionInput');
+            const val = input.value.trim();
+            if (val) {
+                options.push(val);
+                input.value = '';
+                renderOptionsList();
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') addOption();
+        }
+
+        function updateOption(index, val) {
+            if (val.trim()) {
+                options[index] = val.trim();
+                drawWheel(currentAngle);
+            }
+        }
+
+        function removeOption(index) {
+            if (options.length <= 2) {
+                alert("You need at least 2 options to spin!");
+                return;
+            }
+            options.splice(index, 1);
+            renderOptionsList();
+        }
+
+        function loadPreset(newOptions) {
+            if (isSpinning) return;
+            options = [...newOptions];
+            renderOptionsList();
+            resultText.innerText = 'Tap SPIN to decide!';
+        }
+
+        function startSpin() {
+            if (isSpinning) return;
+            if (options.length < 2) {
+                alert("Add at least 2 options first!");
+                return;
+            }
+
+            initAudio();
+            isSpinning = true;
+            spinBtn.disabled = true;
+            resultText.innerText = 'Spinning...';
+
+            const numOptions = options.length;
+            const sliceAngle = 360 / numOptions;
+
+            const randomSpins = 360 * (5 + Math.floor(Math.random() * 4));
+            const extraAngle = Math.random() * 360;
+            const totalRotation = randomSpins + extraAngle;
+
+            const startAngle = currentAngle;
+            const targetAngle = currentAngle + totalRotation;
+            const duration = 3500;
+            const startTime = performance.now();
+
+            let lastTickIndex = -1;
+
+            function animateSpin(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentAngle = startAngle + (targetAngle - startAngle) * easeOut;
+
+                drawWheel(currentAngle);
+
+                const normalizedCurrent = (360 - (currentAngle % 360)) % 360;
+                const currentTickIndex = Math.floor(normalizedCurrent / sliceAngle);
+                if (currentTickIndex !== lastTickIndex) {
+                    playTickSound();
+                    lastTickIndex = currentTickIndex;
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateSpin);
+                } else {
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    currentAngle = targetAngle % 360;
+                    
+                    // CORRECTED POINTER CALCULATION:
+                    // Pointer is fixed at 12 o'clock (270 degrees in canvas space).
+                    const pointerScreenAngle = 270;
+                    const localAngle = (pointerScreenAngle - (currentAngle % 360) + 360) % 360;
+                    const winningIndex = Math.floor(localAngle / sliceAngle) % numOptions;
+
+                    const winner = options[winningIndex];
+                    resultText.innerText = winner;
+                    playWinSound();
+                }
+            }
+
+            requestAnimationFrame(animateSpin);
+        }
+
+        renderOptionsList();
+    </script>
+</body>
+</html>
